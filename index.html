@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>奈良シカマル — The Mind That Sees Everything</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;700;900&family=Bebas+Neue&family=DM+Serif+Display:ital@0;1&family=JetBrains+Mono:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #0a0a0f;
+  --ink2: #13131c;
+  --paper: #f0ead6;
+  --paper2: #e8dfc8;
+  --shadow: #1a1025;
+  --vermillion: #c0392b;
+  --vermillion2: #e74c3c;
+  --gold: #d4a017;
+  --gold2: #f0c040;
+  --ash: #8a8070;
+  --dim: #3a3530;
+  --cloud: rgba(240,234,214,0.06);
+  --w: 100%;
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+
+body {
+  background: var(--ink);
+  color: var(--paper);
+  font-family: 'DM Serif Display', serif;
+  overflow-x: hidden;
+  cursor: none;
+}
+
+/* ─── CUSTOM CURSOR ─── */
+#cur { position:fixed; width:8px; height:8px; background:var(--vermillion); border-radius:50%; pointer-events:none; z-index:9999; transition:transform .08s; mix-blend-mode:exclusion; }
+#cur-trail { position:fixed; width:32px; height:32px; border:1px solid var(--gold); border-radius:50%; pointer-events:none; z-index:9998; transition:all .18s cubic-bezier(.2,1,.2,1); opacity:.6; }
+
+/* ─── CANVAS LAYER ─── */
+#neural { position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.5; }
+
+/* ─── NOISE ─── */
+body::after {
+  content:''; position:fixed; inset:0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='.05'/%3E%3C/svg%3E");
+  pointer-events:none; z-index:1; opacity:.25;
+}
+
+/* ─── SHOJI GRID OVERLAY ─── */
+#shoji {
+  position:fixed; inset:0; z-index:0; pointer-events:none;
+  background-image:
+    linear-gradient(rgba(240,234,214,.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(240,234,214,.02) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+main { position:relative; z-index:2; }
+
+/* ══════════════════════════════════════════
+   HERO
+══════════════════════════════════════════ */
+#hero {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  position: relative;
+  overflow: hidden;
+}
+
+/* LEFT PANEL — dark ink */
+.hero-left {
+  background: var(--ink);
+  padding: 100px 60px 80px;
+  display: flex; flex-direction:column; justify-content:center;
+  position: relative;
+  z-index:2;
+}
+
+/* diagonal cut */
+.hero-left::after {
+  content:'';
+  position:absolute; top:0; right:-60px; bottom:0;
+  width:120px;
+  background: var(--ink);
+  clip-path: polygon(0 0, 50% 0, 100% 100%, 0 100%);
+  z-index:3;
+}
+
+/* RIGHT PANEL — paper texture */
+.hero-right {
+  background: var(--paper2);
+  position: relative;
+  overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+}
+
+/* Ink wash effect */
+.hero-right::before {
+  content:'';
+  position:absolute; inset:-20px;
+  background: radial-gradient(ellipse 80% 80% at 60% 40%, transparent 40%, rgba(10,10,15,.85) 100%),
+              radial-gradient(ellipse 50% 60% at 20% 80%, rgba(192,57,43,.08) 0%, transparent 60%);
+}
+
+/* Large kanji */
+.hero-kanji {
+  font-family: 'Noto Serif JP', serif;
+  font-size: clamp(160px, 22vw, 340px);
+  font-weight: 900;
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgba(10,10,15,.25);
+  position: absolute;
+  user-select:none;
+  animation: kanji-breathe 6s ease-in-out infinite;
+  line-height: 1;
+}
+@keyframes kanji-breathe {
+  0%,100% { transform:scale(1) rotate(-1deg); opacity:.7; }
+  50% { transform:scale(1.04) rotate(1deg); opacity:1; }
+}
+
+/* Shadow tendrils from right to left */
+.shadow-tendrils {
+  position:absolute; right:0; top:0; bottom:0; width:70%;
+  background: linear-gradient(100deg, var(--ink) 0%, transparent 100%);
+  z-index:1;
+}
+
+/* Floating shogi pieces */
+.shogi-float {
+  position:absolute;
+  font-family: 'Noto Serif JP', serif;
+  color: var(--ink);
+  font-weight:900;
+  animation: float-piece 8s ease-in-out infinite;
+  opacity: .18;
+  z-index:2;
+  user-select:none;
+}
+@keyframes float-piece {
+  0%,100% { transform:translateY(0) rotate(-3deg); }
+  33% { transform:translateY(-20px) rotate(2deg); }
+  66% { transform:translateY(10px) rotate(-1deg); }
+}
+
+/* Hero typography */
+.hero-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size:11px; letter-spacing:.45em;
+  color: var(--ash); text-transform:uppercase;
+  margin-bottom:32px;
+  opacity:0; animation: rise .8s .2s forwards;
+}
+
+.hero-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(64px, 9vw, 130px);
+  line-height:.9;
+  color: var(--paper);
+  letter-spacing:.01em;
+  margin-bottom:0;
+  opacity:0; animation: rise .8s .4s forwards;
+}
+
+.hero-name-jp {
+  font-family: 'Noto Serif JP', serif;
+  font-size: clamp(18px, 2.5vw, 30px);
+  font-weight:300;
+  color: var(--gold);
+  letter-spacing:.3em;
+  margin-bottom:28px;
+  opacity:0; animation: rise .8s .6s forwards;
+}
+
+.hero-tagline {
+  font-family: 'DM Serif Display', serif;
+  font-style:italic;
+  font-size: clamp(15px, 1.8vw, 22px);
+  color: var(--ash);
+  line-height:1.7;
+  max-width:420px;
+  margin-bottom:52px;
+  opacity:0; animation: rise .8s .8s forwards;
+}
+
+.hero-tagline em { color:var(--paper); font-style:normal; }
+
+/* IQ badge */
+.iq-badge {
+  display:inline-flex; align-items:center; gap:16px;
+  padding:16px 28px;
+  border:1px solid rgba(212,160,23,.3);
+  position:relative;
+  opacity:0; animation: rise .8s 1s forwards;
+}
+.iq-badge::before {
+  content:'';
+  position:absolute; top:-1px; left:-1px; right:-1px; bottom:-1px;
+  background: linear-gradient(135deg, var(--gold), transparent, var(--vermillion));
+  z-index:-1;
+  opacity:.1;
+}
+.iq-n {
+  font-family:'Bebas Neue', sans-serif;
+  font-size:52px; line-height:1;
+  color:var(--gold);
+}
+.iq-label {
+  font-family:'JetBrains Mono', monospace;
+  font-size:10px; letter-spacing:.3em;
+  color:var(--ash);
+  text-transform:uppercase;
+}
+
+/* Scroll indicator */
+.scroll-ind {
+  position:absolute; bottom:40px; left:60px;
+  display:flex; align-items:center; gap:12px;
+  font-family:'JetBrains Mono', monospace;
+  font-size:10px; letter-spacing:.3em;
+  color:var(--ash); text-transform:uppercase;
+  opacity:0; animation: rise 1s 1.4s forwards;
+}
+.scroll-line {
+  width:40px; height:1px;
+  background: linear-gradient(90deg, var(--gold), transparent);
+  animation: scroll-pulse 2s ease-in-out infinite;
+}
+@keyframes scroll-pulse { 0%,100%{width:40px} 50%{width:70px} }
+
+@keyframes rise {
+  from { opacity:0; transform:translateY(20px); }
+  to { opacity:1; transform:translateY(0); }
+}
+
+/* ══════════════════════════════════════════
+   SECTION COMMONS
+══════════════════════════════════════════ */
+.sec { padding:120px 0; position:relative; }
+.wrap { max-width:1240px; margin:0 auto; padding:0 60px; }
+
+.sec-tag {
+  font-family:'JetBrains Mono', monospace;
+  font-size:10px; letter-spacing:.5em; color:var(--gold);
+  text-transform:uppercase; margin-bottom:14px;
+  display:flex; align-items:center; gap:10px;
+}
+.sec-tag::before { content:''; width:24px; height:1px; background:var(--gold); }
+
+.sec-h {
+  font-family:'Bebas Neue', sans-serif;
+  font-size: clamp(36px, 5vw, 72px);
+  color:var(--paper); line-height:.95;
+  margin-bottom:20px;
+  letter-spacing:.02em;
+}
+
+.sec-p {
+  font-family:'DM Serif Display', serif;
+  font-style:italic;
+  font-size:clamp(15px, 1.5vw, 19px);
+  color:var(--ash);
+  line-height:1.8;
+  max-width:640px;
+}
+
+/* ══════════════════════════════════════════
+   GENIUS GRID — visual stats
+══════════════════════════════════════════ */
+#genius { background:var(--ink2); border-top:1px solid rgba(240,234,214,.05); border-bottom:1px solid rgba(240,234,214,.05); }
+
+.genius-grid {
+  display:grid;
+  grid-template-columns: repeat(4,1fr);
+  margin-top:70px;
+}
+
+.g-cell {
+  padding:52px 36px;
+  border-right:1px solid rgba(240,234,214,.06);
+  position:relative; overflow:hidden;
+  transition:background .3s;
+  cursor:default;
+}
+.g-cell:last-child { border-right:none; }
+.g-cell::before {
+  content:'';
+  position:absolute; bottom:0; left:0; right:0; height:0;
+  background: linear-gradient(0deg, rgba(212,160,23,.06) 0%, transparent 100%);
+  transition:height .4s;
+}
+.g-cell:hover { background:rgba(240,234,214,.02); }
+.g-cell:hover::before { height:100%; }
+
+.g-num {
+  font-family:'Bebas Neue', sans-serif;
+  font-size:72px; line-height:1;
+  color:var(--gold);
+  display:block; margin-bottom:10px;
+}
+.g-unit {
+  font-family:'JetBrains Mono', monospace;
+  font-size:10px; letter-spacing:.4em;
+  color:var(--ash); text-transform:uppercase;
+  display:block; margin-bottom:16px;
+}
+.g-desc {
+  font-family:'DM Serif Display', serif;
+  font-size:15px; color:rgba(240,234,214,.4);
+  line-height:1.6; font-style:italic;
+}
+
+.g-bar {
+  position:absolute; bottom:0; left:0; height:2px;
+  background: linear-gradient(90deg, var(--gold), var(--vermillion));
+  width:0%; transition:width .8s ease;
+}
+.g-cell.visible .g-bar { width:100%; }
+
+/* ══════════════════════════════════════════
+   SHADOW MIND — interactive canvas
+══════════════════════════════════════════ */
+#shadow-mind { background:var(--ink); overflow:hidden; }
+
+.mind-layout {
+  display:grid;
+  grid-template-columns:1fr 500px;
+  gap:80px;
+  align-items:center;
+  margin-top:80px;
+}
+
+#mind-canvas {
+  width:500px; height:500px;
+  border:1px solid rgba(240,234,214,.06);
+  position:relative;
+  cursor:crosshair;
+  background: radial-gradient(circle at 50% 50%, rgba(26,16,37,.8) 0%, var(--ink) 70%);
+}
+
+.mind-label {
+  position:absolute;
+  font-family:'JetBrains Mono', monospace;
+  font-size:9px; letter-spacing:.25em;
+  color:var(--ash); text-transform:uppercase;
+}
+.mind-label.tl { top:16px; left:16px; }
+.mind-label.tr { top:16px; right:16px; }
+.mind-label.bl { bottom:16px; left:16px; }
+.mind-label.br { bottom:16px; right:16px; }
+
+.mind-canvas-el { width:100%; height:100%; }
+
+.mind-text h3 {
+  font-family:'Bebas Neue', sans-serif;
+  font-size:clamp(28px, 3vw, 46px);
+  color:var(--paper); margin-bottom:20px;
+  letter-spacing:.03em;
+}
+.mind-text p {
+  font-family:'DM Serif Display', serif;
+  font-style:italic;
+  font-size:17px; color:var(--ash);
+  line-height:1.8; margin-bottom:16px;
+}
+.mind-text em { color:var(--paper); font-style:normal; }
+
+.mind-hint {
+  font-family:'JetBrains Mono', monospace;
+  font-size:10px; letter-spacing:.3em;
+  color:var(--gold); text-transform:uppercase;
+  margin-top:24px;
+  display:flex; align-items:center; gap:8px;
+}
+.pulse-dot {
+  width:6px; height:6px; border-radius:50%;
+  background:var(--gold);
+  animation:pulse 1.5s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.5);opacity:.4} }
+
+/* ══════════════════════════════════════════
+   5 PILLARS — vertical accordion
+══════════════════════════════════════════ */
+#pillars { background: var(--shadow); }
+
+.pillars-wrap {
+  display:grid;
+  grid-template-columns:380px 1fr;
+  gap:80px;
+  margin-top:80px;
+  align-items:start;
+}
+
+.pillar-list { display:flex; flex-direction:column; gap:0; }
+
+.pillar-item {
+  padding:30px 36px;
+  border-bottom:1px solid rgba(240,234,214,.07);
+  cursor:pointer;
+  transition:all .3s;
+  position:relative;
+  overflow:hidden;
+}
+.pillar-item::after {
+  content:'';
+  position:absolute; left:0; top:0; bottom:0; width:0;
+  background:var(--vermillion);
+  transition:width .3s;
+}
+.pillar-item.open::after { width:3px; }
+.pillar-item:hover { background:rgba(240,234,214,.025); }
+.pillar-item.open { background:rgba(192,57,43,.06); }
+
+.pillar-num {
+  font-family:'JetBrains Mono', monospace;
+  font-size:10px; letter-spacing:.4em;
+  color:var(--gold); text-transform:uppercase;
+  margin-bottom:8px;
+}
+.pillar-name {
+  font-family:'Bebas Neue', sans-serif;
+  font-size:22px; color:var(--paper);
+  letter-spacing:.05em;
+}
+.pillar-sub {
+  font-family:'DM Serif Display', serif;
+  font-style:italic;
+  font-size:14px; color:var(--ash);
+  margin-top:4px;
+}
+
+.pillar-detail {
+  padding:0 40px;
+  position:sticky; top:120px;
+}
+
+.pillar-content { display:none; animation:fadeSlide .35s ease; }
+.pillar-content.show { display:block; }
+@keyframes fadeSlide {
+  from{opacity:0;transform:translateX(12px)}
+  to{opacity:1;transform:translateX(0)}
+}
+
+.pillar-content-num {
+  font-family:'Bebas Neue', sans-serif;
+  font-size:120px; line-height:1;
+  color:transparent;
+  -webkit-text-stroke:1px rgba(240,234,214,.06);
+  margin-bottom:-20px;
+  display:block; user-select:none;
+}
+
+.pillar-content h3 {
+  font-family:'Bebas Neue', sans-serif;
+  font-size:46px; color:var(--gold);
+  letter-spacing:.03em; margin-bottom:16px;
+}
+
+.pillar-content > p {
+  font-family:'DM Serif Display', serif;
+  font-style:italic;
+  font-size:17px; color:var(--ash);
+  line-height:1.8; margin-bottom:28px;
+}
+
+.pillar-cards {
+  display:grid; grid-template-columns:1fr 1fr; gap:2px;
+}
+.p-card {
+  background:rgba(240,234,214,.03);
+  border:1px solid rgba(240,234,214,.06);
+  padding:24px 20px;
+  transition:all .3s;
+}
+.p-card:hover {
+  background:rgba(212,160,23,.05);
+  border-color:rgba(212,160,23,.2);
+}
+.p-card-t {
+  font-family:'JetBrains Mono', monospace;
+  font-size:10px; letter-spacing:.3em;
+  color:var(--gold); text-transform:uppercase;
+  margin-bottom:10px;
+}
+.p-card-b {
+  font-family:'DM Serif Display', serif;
+  font-size:15px; color:rgba(240,234,214,.55);
+  line-height:1.6; font-style:italic;
+}
+
+/* ══════════════════════════════════════════
+   SHADOW SCROLL — horizontal marquee
+══════════════════════════════════════════ */
+#shadow-scroll {
+  background:var(--ink2);
+  padding:0;
+  border-top:1px solid rgba(240,234,214,.05);
+  border-bottom:1px solid rgba(240,234,214,.05);
+  overflow:hidden;
+}
+
+.scroll-track {
+  display:flex; gap:0;
+  padding:36px 0;
+  white-space:nowrap;
+  animation:crawl 40s linear infinite;
+}
+.scroll-track:hover { animation-play-state:paused; }
+@keyframes crawl {
+  from{transform:translateX(0)}
+  to{transform:translateX(-50%)}
+}
+
+.s-quote {
+  display:inline-flex; align-items:center; gap:40px;
+  padding:0 60px;
+  border-right:1px solid rgba(240,234,214,.08);
+}
+.s-jp {
+  font-family:'Noto Serif JP', serif;
+  font-size:22px; color:rgba(212,160,23,.4);
+  letter-spacing:.1em;
+}
+.s-txt {
+  font-family:'DM Serif Display', serif;
+  font-style:italic;
+  font-size:18px; color:rgba(240,234,214,.45);
+}
+.s-txt em { color:rgba(240,234,214,.85); font-style:normal; }
+
+/* ══════════════════════════════════════════
+   10 PRINCIPLES — ink grid
+══════════════════════════════════════════ */
+#principles { background:var(--ink); }
+
+.p-grid {
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  border:1px solid rgba(240,234,214,.06);
+  margin-top:80px;
+}
+
+.pr-card {
+  border-right:1px solid rgba(240,234,214,.06);
+  border-bottom:1px solid rgba(240,234,214,.06);
+  padding:40px 28px 36px;
+  position:relative; overflow:hidden;
+  cursor:default;
+  transition:background .3s;
+  min-height:220px;
+}
+.pr-card:nth-child(5n) { border-right:none; }
+.pr-card:nth-child(n+6) { border-bottom:none; }
+
+.pr-card::before {
+  content:attr(data-n);
+  position:absolute; bottom:-10px; right:8px;
+  font-family:'Bebas Neue', sans-serif;
+  font-size:90px; color:rgba(240,234,214,.025);
+  pointer-events:none; line-height:1;
+  transition:color .3s, transform .4s;
+}
+.pr-card:hover { background:rgba(192,57,43,.04); }
+.pr-card:hover::before { color:rgba(192,57,43,.07); transform:scale(1.05); }
+
+.pr-n {
+  font-family:'Bebas Neue', sans-serif;
+  font-size:36px; color:var(--vermillion);
+  line-height:1; margin-bottom:12px;
+}
+.pr-t {
+  font-family:'DM Serif Display', serif;
+  font-size:15px; color:var(--paper);
+  margin-bottom:10px; line-height:1.3;
+}
+.pr-b {
+  font-family:'DM Serif Display', serif;
+  font-style:italic;
+  font-size:13px; color:var(--ash);
+  line-height:1.65;
+}
+.pr-line {
+  position:absolute; bottom:0; left:0;
+  height:1px; width:0%;
+  background:var(--vermillion);
+  transition:width .5s ease;
+}
+.pr-card:hover .pr-line { width:100%; }
+
+/* ══════════════════════════════════════════
+   DECISION FLOW — timeline
+══════════════════════════════════════════ */
+#decision { background:var(--shadow); }
+
+.decision-flow {
+  margin-top:80px;
+  position:relative;
+  display:grid; gap:0;
+}
+
+.decision-flow::before {
+  content:'';
+  position:absolute; left:56px; top:24px; bottom:24px;
+  width:1px;
+  background: linear-gradient(to bottom, var(--gold) 0%, var(--vermillion) 50%, transparent 100%);
+}
+
+.df-step {
+  display:grid;
+  grid-template-columns:112px 1fr;
+  gap:40px;
+  padding:40px 0;
+  border-bottom:1px solid rgba(240,234,214,.04);
+  position:relative;
+  opacity:0; transform:translateX(-20px);
+  transition:all .6s ease;
+}
+.df-step.visible { opacity:1; transform:translateX(0); }
+.df-step:last-child { border-bottom:none; }
+
+.df-num-wrap {
+  display:flex; flex-direction:column; align-items:center; gap:0;
+  position:relative;
+}
+.df-num {
+  width:48px; height:48px;
+  border:1px solid rgba(212,160,23,.3);
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Bebas Neue', sans-serif;
+  font-size:22px; color:var(--gold);
+  background:var(--shadow);
+  position:relative; z-index:1;
+  transition:all .3s;
+  flex-shrink:0;
+}
+.df-step:hover .df-num {
+  background:var(--gold);
+  color:var(--ink);
+  border-color:var(--gold);
+}
+
+.df-body {}
+.df-tag {
+  font-family:'JetBrains Mono', monospace;
+  font-size:9px; letter-spacing:.5em;
+  color:var(--gold); text-transform:uppercase;
+  margin-bottom:10px;
+}
+.df-title {
+  font-family:'Bebas Neue', sans-serif;
+  font-size:clamp(22px, 2.5vw, 34px);
+  color:var(--paper); letter-spacing:.03em;
+  margin-bottom:12px; line-height:1;
+}
+.df-text {
+  font-family:'DM Serif Display', serif;
+  font-style:italic;
+  font-size:16px; color:var(--ash);
+  line-height:1.75; max-width:600px;
+}
+
+/* ══════════════════════════════════════════
+   EVOLUTION — phases
+══════════════════════════════════════════ */
+#evolution { background:var(--ink2); }
+
+.evo-grid {
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:2px;
+  margin-top:80px;
+  background:rgba(240,234,214,.04);
+}
+
+.evo-phase {
+  background:var(--ink2);
+  padding:52px 36px;
+  position:relative; overflow:hidden;
+  transition:background .3s;
+}
+.evo-phase:hover { background:rgba(240,234,214,.025); }
+
+.evo-phase::after {
+  content:'';
+  position:absolute; bottom:0; left:0; right:0; height:3px;
+  background: linear-gradient(90deg, var(--gold), var(--vermillion));
+  transform:scaleX(0); transform-origin:left;
+  transition:transform .5s;
+}
+.evo-phase:hover::after { transform:scaleX(1); }
+
+.evo-roman {
+  font-family:'Bebas Neue', sans-serif;
+  font-size:80px; line-height:1;
+  color:transparent;
+  -webkit-text-stroke:1px rgba(212,160,23,.15);
+  margin-bottom:-10px; display:block;
+}
+.evo-tag {
+  font-family:'JetBrains Mono', monospace;
+  font-size:9px; letter-spacing:.45em;
+  color:var(--ash); text-transform:uppercase;
+  margin-bottom:12px;
+}
+.evo-title {
+  font-family:'DM Serif Display', serif;
+  font-size:20px; color:var(--paper);
+  margin-bottom:14px; line-height:1.3;
+}
+.evo-body {
+  font-family:'DM Serif Display', serif;
+  font-style:italic;
+  font-size:14px; color:var(--ash);
+  line-height:1.7;
+}
+.evo-chips {
+  display:flex; flex-wrap:wrap; gap:6px; margin-top:20px;
+}
+.chip {
+  font-family:'JetBrains Mono', monospace;
+  font-size:9px; letter-spacing:.15em;
+  padding:4px 10px;
+  border:1px solid rgba(240,234,214,.1);
+  color:var(--ash); text-transform:uppercase;
+}
+
+/* ══════════════════════════════════════════
+   FINAL — cinematic closing
+══════════════════════════════════════════ */
+#final {
+  min-height:80vh;
+  background:var(--ink);
+  display:flex; flex-direction:column;
+  justify-content:center; align-items:center;
+  text-align:center;
+  padding:120px 60px;
+  position:relative; overflow:hidden;
+}
+
+.final-bg {
+  position:absolute; inset:0;
+  background: radial-gradient(ellipse 70% 50% at 50% 50%, rgba(26,16,37,.6) 0%, var(--ink) 70%);
+}
+
+#final-canvas {
+  position:absolute; inset:0;
+  pointer-events:none; opacity:.3;
+}
+
+.final-jp {
+  font-family:'Noto Serif JP', serif;
+  font-size:clamp(80px, 15vw, 200px);
+  font-weight:900;
+  color:transparent;
+  -webkit-text-stroke:1px rgba(212,160,23,.12);
+  position:absolute;
+  user-select:none;
+  animation:final-drift 12s ease-in-out infinite;
+  pointer-events:none;
+}
+@keyframes final-drift {
+  0%,100%{transform:translate(-50%,-50%) rotate(-2deg) scale(1)} 
+  50%{transform:translate(-50%,-50%) rotate(2deg) scale(1.04)}
+}
+
+.final-tag {
+  font-family:'JetBrains Mono', monospace;
+  font-size:10px; letter-spacing:.6em;
+  color:var(--gold); text-transform:uppercase;
+  margin-bottom:32px;
+  opacity:0; animation:rise .8s .2s forwards;
+  position:relative;
+}
+
+.final-quote {
+  font-family:'DM Serif Display', serif;
+  font-style:italic;
+  font-size:clamp(20px, 3.5vw, 44px);
+  color:var(--paper);
+  max-width:900px;
+  line-height:1.4;
+  margin-bottom:32px;
+  position:relative;
+  opacity:0; animation:rise 1s .5s forwards;
+}
+
+.final-attr {
+  font-family:'JetBrains Mono', monospace;
+  font-size:11px; letter-spacing:.4em;
+  color:var(--ash); text-transform:uppercase;
+  position:relative;
+  opacity:0; animation:rise .8s .9s forwards;
+}
+
+/* ══════════════════════════════════════════
+   FOOTER
+══════════════════════════════════════════ */
+footer {
+  background:var(--ink2);
+  border-top:1px solid rgba(240,234,214,.05);
+  padding:36px 60px;
+  display:flex; justify-content:space-between; align-items:center;
+}
+.foot-l {
+  display:flex; align-items:center; gap:16px;
+}
+.foot-jp {
+  font-family:'Noto Serif JP', serif;
+  font-size:20px; font-weight:700;
+  color:var(--gold); opacity:.6;
+}
+.foot-name {
+  font-family:'Bebas Neue', sans-serif;
+  font-size:16px; letter-spacing:.2em;
+  color:var(--paper); opacity:.4;
+}
+.foot-r {
+  font-family:'JetBrains Mono', monospace;
+  font-size:10px; letter-spacing:.25em;
+  color:var(--ash);
+}
+
+/* ══════════════════════════════════════════
+   REVEAL UTIL
+══════════════════════════════════════════ */
+.reveal { opacity:0; transform:translateY(28px); transition:all .8s ease; }
+.reveal.visible { opacity:1; transform:translateY(0); }
+
+/* ══════════════════════════════════════════
+   MOBILE
+══════════════════════════════════════════ */
+@media(max-width:900px){
+  #hero { grid-template-columns:1fr; }
+  .hero-right { display:none; }
+  .hero-left { padding:100px 28px 80px; }
+  .hero-left::after { display:none; }
+  .wrap { padding:0 28px; }
+  .genius-grid { grid-template-columns:repeat(2,1fr); }
+  .g-cell:nth-child(2) { border-right:none; }
+  .mind-layout { grid-template-columns:1fr; }
+  #mind-canvas { width:100%; height:320px; }
+  .pillars-wrap { grid-template-columns:1fr; }
+  .pillar-detail { padding:0; }
+  .p-grid { grid-template-columns:repeat(2,1fr); }
+  .pr-card:nth-child(2n) { border-right:none; }
+  .pr-card:nth-child(n+9) { border-bottom:none; }
+  .evo-grid { grid-template-columns:1fr 1fr; }
+  footer { flex-direction:column; gap:12px; text-align:center; }
+}
+</style>
+</head>
+<body>
+
+<div id="cur"></div>
+<div id="cur-trail"></div>
+<div id="shoji"></div>
+<canvas id="neural"></canvas>
+
+<main>
+
+<!-- ══ HERO ══ -->
+<section id="hero">
+  <div class="hero-left">
+    <div class="hero-eyebrow">IQ 200+ · Nara Clan · Konoha · Strategy Division</div>
+    <h1 class="hero-name">SHIKA<br>MARU</h1>
+    <div class="hero-name-jp">奈良 シカマル</div>
+    <p class="hero-tagline">
+      Kemalasan adalah <em>efisiensi</em> yang disalahpahami.<br>
+      Ketenangan adalah <em>senjata</em> yang tidak terlihat.<br>
+      Dan pikiran yang diam — <em>paling berbahaya</em>.
+    </p>
+    <div class="iq-badge">
+      <div>
+        <div class="iq-n" id="iq-counter">0</div>
+        <div class="iq-label">IQ Score</div>
+      </div>
+      <div style="width:1px;height:52px;background:rgba(212,160,23,.2)"></div>
+      <div>
+        <div class="iq-n">10</div>
+        <div class="iq-label">Langkah ke Depan</div>
+      </div>
+    </div>
+    <div class="scroll-ind">
+      <div class="scroll-line"></div>
+      Scroll untuk menjelajahi
+    </div>
+  </div>
+
+  <div class="hero-right">
+    <div class="shadow-tendrils"></div>
+    <div class="hero-kanji">将</div>
+    <!-- Floating pieces -->
+    <span class="shogi-float" style="top:15%;left:20%;font-size:48px;animation-delay:0s">王</span>
+    <span class="shogi-float" style="top:60%;left:65%;font-size:36px;animation-delay:2s">飛</span>
+    <span class="shogi-float" style="top:80%;left:25%;font-size:28px;animation-delay:4s">角</span>
+    <span class="shogi-float" style="top:30%;left:75%;font-size:22px;animation-delay:1s">金</span>
+    <span class="shogi-float" style="top:50%;left:10%;font-size:18px;animation-delay:3s">銀</span>
+    <!-- Shadow canvas -->
+    <canvas id="shadow-canvas" style="position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none;mix-blend-mode:screen"></canvas>
+  </div>
+</section>
+
+<!-- ══ GENIUS STATS ══ -->
+<section id="genius" class="sec">
+  <div class="wrap">
+    <div class="sec-tag">Profil Kognitif</div>
+    <h2 class="sec-h reveal">BUKAN SEKADAR<br>ANGKA</h2>
+    <p class="sec-p reveal">Yang membuat Shikamaru luar biasa bukan angka IQ-nya — tapi bagaimana ia mengalokasikan kecerdasannya. Tepat, efisien, dan selalu di waktu yang paling kritis.</p>
+  </div>
+  <div class="wrap">
+    <div class="genius-grid">
+      <div class="g-cell">
+        <span class="g-num" data-target="200">0</span>
+        <span class="g-unit">IQ Score</span>
+        <div class="g-desc">Tertinggi di antara semua karakter dalam semesta Naruto yang diukur secara eksplisit</div>
+        <div class="g-bar"></div>
+      </div>
+      <div class="g-cell">
+        <span class="g-num" data-target="10">0</span>
+        <span class="g-unit">Langkah ke Depan</span>
+        <div class="g-desc">Rata-rata perhitungan maju yang dilakukan sebelum mengeksekusi satu langkah</div>
+        <div class="g-bar"></div>
+      </div>
+      <div class="g-cell">
+        <span class="g-num" data-target="5">0</span>
+        <span class="g-unit">Lapisan Strategi</span>
+        <div class="g-desc">Sistem berpikir berlapis yang berjalan secara simultan dalam setiap situasi</div>
+        <div class="g-bar"></div>
+      </div>
+      <div class="g-cell">
+        <span class="g-num" data-target="3">0</span>
+        <span class="g-unit">Detik Kritis</span>
+        <div class="g-desc">Jeda minimum sebelum bereaksi — ruang kecil yang mengubah kualitas keputusan</div>
+        <div class="g-bar"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ SHADOW MIND ══ -->
+<section id="shadow-mind" class="sec">
+  <div class="wrap">
+    <div class="mind-layout">
+      <div>
+        <div class="sec-tag">Visual Thinking</div>
+        <div class="mind-text">
+          <h3>Pikiran yang<br>Tidak Pernah<br>Berhenti Berproses</h3>
+          <p>Saat orang lain melihat <em>kekacauan</em>, Shikamaru melihat <em>pola</em>. Saat orang lain bereaksi, ia sudah berada tiga langkah di depan.</p>
+          <p>Visualisasi ini menggambarkan cara pikiran Shikamaru membangun koneksi — setiap titik adalah variabel, setiap garis adalah relasi sebab-akibat yang ia perhitungkan.</p>
+          <div class="mind-hint">
+            <div class="pulse-dot"></div>
+            Gerakkan mouse di atas canvas untuk berinteraksi
+          </div>
+        </div>
+      </div>
+      <div id="mind-canvas">
+        <div class="mind-label tl">OBSERVE</div>
+        <div class="mind-label tr">CALCULATE</div>
+        <div class="mind-label bl">PREDICT</div>
+        <div class="mind-label br">EXECUTE</div>
+        <canvas class="mind-canvas-el" id="mind-cv"></canvas>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 5 PILLARS ══ -->
+<section id="pillars" class="sec">
+  <div class="wrap">
+    <div class="sec-tag">Kerangka Berpikir</div>
+    <h2 class="sec-h reveal">5 LAPISAN<br>STRATEGI</h2>
+    <p class="sec-p reveal">Bukan hanya berpikir cepat — Shikamaru beroperasi dalam lima lapisan kognitif yang berjalan bersamaan, dari penilaian ancaman hingga perang psikologis.</p>
+  </div>
+  <div class="wrap">
+    <div class="pillars-wrap">
+      <div class="pillar-list">
+        <div class="pillar-item open" onclick="openPillar(0)">
+          <div class="pillar-num">01 — Layer</div>
+          <div class="pillar-name">Threat Assessment</div>
+          <div class="pillar-sub">Membaca situasi secara total</div>
+        </div>
+        <div class="pillar-item" onclick="openPillar(1)">
+          <div class="pillar-num">02 — Layer</div>
+          <div class="pillar-name">Reverse Engineering</div>
+          <div class="pillar-sub">Mulai dari tujuan akhir</div>
+        </div>
+        <div class="pillar-item" onclick="openPillar(2)">
+          <div class="pillar-num">03 — Layer</div>
+          <div class="pillar-name">Probabilistic Branching</div>
+          <div class="pillar-sub">Pohon keputusan multi-skenario</div>
+        </div>
+        <div class="pillar-item" onclick="openPillar(3)">
+          <div class="pillar-num">04 — Layer</div>
+          <div class="pillar-name">Resource Optimization</div>
+          <div class="pillar-sub">Efisiensi mutlak</div>
+        </div>
+        <div class="pillar-item" onclick="openPillar(4)">
+          <div class="pillar-num">05 — Layer</div>
+          <div class="pillar-name">Psychological Warfare</div>
+          <div class="pillar-sub">Menguasai dinamika manusia</div>
+        </div>
+      </div>
+      <div class="pillar-detail">
+        <!-- CONTENT 0 -->
+        <div class="pillar-content show" id="pc0">
+          <span class="pillar-content-num">01</span>
+          <h3>Threat Assessment</h3>
+          <p>Sebelum bereaksi, Shikamaru melakukan scanning menyeluruh — kondisi medan, kemampuan lawan, motif tersembunyi, dan waktu yang tersedia. Ini bukan proses lambat; ini adalah <em>refleks kognitif</em> terlatih.</p>
+          <div class="pillar-cards">
+            <div class="p-card"><div class="p-card-t">Siapa yang terlibat</div><div class="p-card-b">Identifikasi semua pemain beserta motif sejati mereka — bukan yang dikatakan, tapi yang dilakukan</div></div>
+            <div class="p-card"><div class="p-card-t">Yang tidak dikatakan</div><div class="p-card-b">Informasi paling penting sering kali tersembunyi dalam apa yang tidak disampaikan</div></div>
+            <div class="p-card"><div class="p-card-t">Durasi waktu</div><div class="p-card-b">Berapa waktu yang tersedia menentukan kedalaman strategi yang bisa dibangun</div></div>
+            <div class="p-card"><div class="p-card-t">Inventori sumber daya</div><div class="p-card-b">Kenali dengan jujur apa yang dimiliki — kekuatan maupun batas kemampuan saat ini</div></div>
+          </div>
+        </div>
+        <!-- CONTENT 1 -->
+        <div class="pillar-content" id="pc1">
+          <span class="pillar-content-num">02</span>
+          <h3>Reverse Engineering</h3>
+          <p>Shikamaru tidak bertanya <em>"apa yang bisa kulakukan?"</em> — ia bertanya <em>"kondisi apa yang harus ada agar aku menang?"</em> lalu mundur ke saat ini. Inilah cara berpikir yang mengubah visi menjadi langkah nyata.</p>
+          <div class="pillar-cards">
+            <div class="p-card"><div class="p-card-t">Tujuan yang sangat spesifik</div><div class="p-card-b">Bukan "sukses" — tapi kondisi konkret yang bisa diverifikasi dan diukur secara objektif</div></div>
+            <div class="p-card"><div class="p-card-t">Kondisi prasyarat</div><div class="p-card-b">Apa yang harus ada sebelum tujuan bisa tercapai? Mundur satu langkah per satu langkah</div></div>
+            <div class="p-card"><div class="p-card-t">Langkah hari ini</div><div class="p-card-b">Temukan satu tindakan konkret yang bisa dilakukan sekarang — itulah prioritas sejati</div></div>
+            <div class="p-card"><div class="p-card-t">Revisi berkala</div><div class="p-card-b">Rencana kaku itu rapuh. Fleksibilitas dalam rute, keteguhan dalam tujuan akhir</div></div>
+          </div>
+        </div>
+        <!-- CONTENT 2 -->
+        <div class="pillar-content" id="pc2">
+          <span class="pillar-content-num">03</span>
+          <h3>Probabilistic Branching</h3>
+          <p>Shikamaru tidak membuat satu rencana — ia membuat <em>pohon keputusan</em>. Setiap kemungkinan reaksi diperhitungkan. Setiap reaksi memiliki counter-strategi. Inilah mengapa ia hampir tidak pernah terkejut.</p>
+          <div class="pillar-cards">
+            <div class="p-card"><div class="p-card-t">Skenario terbaik (30%)</div><div class="p-card-b">Siapkan langkah akselerasi — jangan hanya reaktif ketika kondisi berpihak pada kita</div></div>
+            <div class="p-card"><div class="p-card-t">Skenario normal (50%)</div><div class="p-card-b">Jalankan rencana utama dengan penyesuaian minor sesuai kondisi lapangan</div></div>
+            <div class="p-card"><div class="p-card-t">Skenario terburuk (20%)</div><div class="p-card-b">Siapkan exit strategy yang bermartabat — bukan tanda kekalahan, tapi kebijaksanaan</div></div>
+            <div class="p-card"><div class="p-card-t">Trigger points</div><div class="p-card-b">Tentukan dengan jelas kapan harus beralih dari satu plan ke plan berikutnya</div></div>
+          </div>
+        </div>
+        <!-- CONTENT 3 -->
+        <div class="pillar-content" id="pc3">
+          <span class="pillar-content-num">04</span>
+          <h3>Resource Optimization</h3>
+          <p>Shikamaru selalu sadar penuh akan keterbatasan. Ia tidak pernah membuang sumber daya pada solusi yang berlebihan — selalu mencari <em>minimum effective dose</em>: solusi terkecil yang menghasilkan dampak terbesar.</p>
+          <div class="pillar-cards">
+            <div class="p-card"><div class="p-card-t">Waktu sebagai aset</div><div class="p-card-b">Lindungi waktu deep work seperti investasi paling berharga yang tidak bisa dikembalikan</div></div>
+            <div class="p-card"><div class="p-card-t">Energi emosional</div><div class="p-card-b">Jangan habiskan untuk konflik yang tidak mengubah apapun — pilih pertempuranmu</div></div>
+            <div class="p-card"><div class="p-card-t">Reputasi & relasi</div><div class="p-card-b">Aset paling lambat dibangun dan paling mudah hancur — investasikan dengan penuh kesadaran</div></div>
+            <div class="p-card"><div class="p-card-t">ROI setiap tindakan</div><div class="p-card-b">Pertanyaan yang selalu harus dijawab: apakah usaha ini sepadan dengan hasil yang diperoleh?</div></div>
+          </div>
+        </div>
+        <!-- CONTENT 4 -->
+        <div class="pillar-content" id="pc4">
+          <span class="pillar-content-num">05</span>
+          <h3>Psychological Warfare</h3>
+          <p>Yang membedakan Shikamaru dari ahli strategi biasa: ia memahami psikologi manusia dan menggunakannya sebagai <em>variabel yang bisa diprediksi</em>. Reaksi emosional lawan adalah data, bukan gangguan.</p>
+          <div class="pillar-cards">
+            <div class="p-card"><div class="p-card-t">Baca motivasi sejati</div><div class="p-card-b">Orang tidak selalu mengatakan yang mereka inginkan — amati tindakan, bukan kata-kata</div></div>
+            <div class="p-card"><div class="p-card-t">Kuasai framing</div><div class="p-card-b">Cara menyajikan informasi menentukan respons orang lain — naratif adalah senjata</div></div>
+            <div class="p-card"><div class="p-card-t">Kekuatan diam</div><div class="p-card-b">Tidak mengisi keheningan bisa menjadi posisi negosiasi yang paling kuat</div></div>
+            <div class="p-card"><div class="p-card-t">Controlled vulnerability</div><div class="p-card-b">Menampilkan kelemahan yang tepat pada waktu yang tepat bisa sepenuhnya melucuti lawan</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ MARQUEE ══ -->
+<section id="shadow-scroll">
+  <div class="scroll-track" id="st">
+    <span class="s-quote"><span class="s-jp">めんどくさい</span><span class="s-txt"><em>Betapa melelahkannya</em> — tapi ia tetap melakukannya dengan sempurna</span></span>
+    <span class="s-quote"><span class="s-jp">将棋</span><span class="s-txt">Hidup adalah papan shōgi — setiap langkah punya konsekuensi <em>dua tingkat ke depan</em></span></span>
+    <span class="s-quote"><span class="s-jp">影縛りの術</span><span class="s-txt">Kemenangan sejati sudah <em>ditentukan sebelum</em> pertempuran dimulai</span></span>
+    <span class="s-quote"><span class="s-jp">静けさ</span><span class="s-txt"><em>Ketenangan adalah senjata</em> yang paling sering diremehkan</span></span>
+    <span class="s-quote"><span class="s-jp">頭脳</span><span class="s-txt">Bukan siapa yang paling kuat — tapi siapa yang <em>paling jernih pikirannya</em></span></span>
+    <span class="s-quote"><span class="s-jp">めんどくさい</span><span class="s-txt"><em>Betapa melelahkannya</em> — tapi ia tetap melakukannya dengan sempurna</span></span>
+    <span class="s-quote"><span class="s-jp">将棋</span><span class="s-txt">Hidup adalah papan shōgi — setiap langkah punya konsekuensi <em>dua tingkat ke depan</em></span></span>
+    <span class="s-quote"><span class="s-jp">影縛りの術</span><span class="s-txt">Kemenangan sejati sudah <em>ditentukan sebelum</em> pertempuran dimulai</span></span>
+    <span class="s-quote"><span class="s-jp">静けさ</span><span class="s-txt"><em>Ketenangan adalah senjata</em> yang paling sering diremehkan</span></span>
+    <span class="s-quote"><span class="s-jp">頭脳</span><span class="s-txt">Bukan siapa yang paling kuat — tapi siapa yang <em>paling jernih pikirannya</em></span></span>
+  </div>
+</section>
+
+<!-- ══ 10 PRINCIPLES ══ -->
+<section id="principles" class="sec">
+  <div class="wrap">
+    <div class="sec-tag">Panduan Praktis</div>
+    <h2 class="sec-h reveal">10 PRINSIP<br>UNTUK HIDUP NYATA</h2>
+    <p class="sec-p reveal">Internalisasikan ini bukan sebagai aturan — tapi sebagai refleks. Latih satu per satu, mulai dari yang paling relevan dengan situasimu sekarang.</p>
+  </div>
+  <div class="wrap" style="margin-top:0">
+    <div class="p-grid reveal">
+      <div class="pr-card" data-n="1">
+        <div class="pr-n">01</div>
+        <div class="pr-t">Jeda Sebelum Reaktif</div>
+        <div class="pr-b">3 detik sebelum merespons situasi kritis. Ruang kecil ini mengubah kualitas keputusan sepenuhnya.</div>
+        <div class="pr-line"></div>
+      </div>
+      <div class="pr-card" data-n="2">
+        <div class="pr-n">02</div>
+        <div class="pr-t">Mulai dari Akhir</div>
+        <div class="pr-b">Definisikan kondisi sukses yang sangat spesifik, lalu mundur ke langkah pertama yang bisa dilakukan hari ini.</div>
+        <div class="pr-line"></div>
+      </div>
+      <div class="pr-card" data-n="3">
+        <div class="pr-n">03</div>
+        <div class="pr-t">Plan A, B, dan C</div>
+        <div class="pr-b">Rencana terbaik bukan yang tidak bisa gagal — tapi yang sudah mengantisipasi setiap bentuk kegagalan.</div>
+        <div class="pr-line"></div>
+      </div>
+      <div class="pr-card" data-n="4">
+        <div class="pr-n">04</div>
+        <div class="pr-t">Kenali Batas Sumber Daya</div>
+        <div class="pr-b">Waktu, energi, relasi — terbatas. Investasikan hanya pada yang benar-benar penting dan berdampak.</div>
+        <div class="pr-line"></div>
+      </div>
+      <div class="pr-card" data-n="5">
+        <div class="pr-n">05</div>
+        <div class="pr-t">Emosi sebagai Data</div>
+        <div class="pr-b">Jangan tekan emosi — jadikan informasi tentang nilai dan kebutuhan sejati yang perlu diperhatikan.</div>
+        <div class="pr-line"></div>
+      </div>
+      <div class="pr-card" data-n="6">
+        <div class="pr-n">06</div>
+        <div class="pr-t">Pilih Pertempuranmu</div>
+        <div class="pr-b">Tidak setiap konflik perlu dimenangkan. Selektivitas yang cerdas adalah bentuk kekuatan tertinggi.</div>
+        <div class="pr-line"></div>
+      </div>
+      <div class="pr-card" data-n="7">
+        <div class="pr-n">07</div>
+        <div class="pr-t">Baca Motivasi Orang</div>
+        <div class="pr-b">Orang tidak selalu mengatakan yang mereka inginkan. Amati tindakan — lebih jujur dari kata-kata manapun.</div>
+        <div class="pr-line"></div>
+      </div>
+      <div class="pr-card" data-n="8">
+        <div class="pr-n">08</div>
+        <div class="pr-t">Bangun Reputasi Konsisten</div>
+        <div class="pr-b">Pilih satu atau dua hal yang ingin dikenal. Lalu tunjukkan secara konsisten hingga menjadi identitas.</div>
+        <div class="pr-line"></div>
+      </div>
+      <div class="pr-card" data-n="9">
+        <div class="pr-n">09</div>
+        <div class="pr-t">Toleransi Ambiguitas</div>
+        <div class="pr-b">Ketidakpastian adalah kondisi default hidup. Bangun sistem yang tetap bekerja meski situasi terus berubah.</div>
+        <div class="pr-line"></div>
+      </div>
+      <div class="pr-card" data-n="10">
+        <div class="pr-n">10</div>
+        <div class="pr-t">Berpikir dalam Sistem</div>
+        <div class="pr-b">Setiap tindakan punya efek riak. Latih diri untuk melihat konsekuensi dua dan tiga langkah ke depan.</div>
+        <div class="pr-line"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ DECISION FLOW ══ -->
+<section id="decision" class="sec">
+  <div class="wrap">
+    <div class="sec-tag">Decision Science</div>
+    <h2 class="sec-h reveal">OODA LOOP:<br>PIKIR CEPAT,<br>TINDAK TEPAT</h2>
+    <p class="sec-p reveal">Framework yang digunakan pilot tempur, negosiator, dan atlet dunia — dijalankan Shikamaru secara intuitif di setiap konfrontasi.</p>
+    <div class="decision-flow">
+      <div class="df-step">
+        <div class="df-num-wrap"><div class="df-num">O</div></div>
+        <div class="df-body">
+          <div class="df-tag">Step 01 — Observe</div>
+          <div class="df-title">Amati Tanpa Filter</div>
+          <div class="df-text">Kumpulkan semua informasi yang tersedia — visual, auditori, kontekstual — tanpa langsung menilai atau bereaksi. Shikamaru tidak bereaksi terhadap apa yang terlihat, tapi terhadap apa yang sesungguhnya terjadi.</div>
+        </div>
+      </div>
+      <div class="df-step">
+        <div class="df-num-wrap"><div class="df-num">O</div></div>
+        <div class="df-body">
+          <div class="df-tag">Step 02 — Orient</div>
+          <div class="df-title">Kontekstualisasi</div>
+          <div class="df-text">Interpretasikan data berdasarkan konteks, pengalaman, dan nilai yang dipegang. Ini adalah tahap yang paling membedakan pemikir biasa dari yang luar biasa — kemampuan memberi makna pada informasi mentah.</div>
+        </div>
+      </div>
+      <div class="df-step">
+        <div class="df-num-wrap"><div class="df-num">D</div></div>
+        <div class="df-body">
+          <div class="df-tag">Step 03 — Decide</div>
+          <div class="df-title">Putuskan dengan Tegas</div>
+          <div class="df-text">Pilih tindakan terbaik dengan informasi yang tersedia saat ini. Jangan menunggu kepastian sempurna — tidak ada. Keputusan yang cukup baik dan dieksekusi sekarang lebih baik dari keputusan sempurna yang terlambat.</div>
+        </div>
+      </div>
+      <div class="df-step">
+        <div class="df-num-wrap"><div class="df-num">A</div></div>
+        <div class="df-body">
+          <div class="df-tag">Step 04 — Act</div>
+          <div class="df-title">Eksekusi & Iterasi</div>
+          <div class="df-text">Bertindak dengan penuh komitmen. Amati hasilnya. Masukkan kembali ke dalam siklus sebagai data baru. Shikamaru tidak pernah menganggap satu rencana sebagai final — setiap aksi adalah eksperimen yang menghasilkan informasi lebih banyak.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ EVOLUTION ══ -->
+<section id="evolution" class="sec">
+  <div class="wrap">
+    <div class="sec-tag">Perjalanan</div>
+    <h2 class="sec-h reveal">EVOLUSI:<br>INDIVIDU → NEGARAWAN</h2>
+    <p class="sec-p reveal">Shikamaru tidak hanya menjadi lebih kuat secara taktis — ia tumbuh dalam skala berpikir. Pola yang sama bisa dilacak dalam perjalanan siapapun yang ingin menjadi pemimpin sejati.</p>
+  </div>
+  <div class="wrap">
+    <div class="evo-grid reveal">
+      <div class="evo-phase">
+        <span class="evo-roman">I</span>
+        <div class="evo-tag">Fase Pemula — 0 hingga 3 tahun</div>
+        <div class="evo-title">Optimasi Personal</div>
+        <div class="evo-body">Fokus pada efisiensi diri sendiri. Belajar membedakan yang penting dari yang sekadar terasa mendesak. Membangun kebiasaan berpikir sebelum bereaksi sebagai fondasi segala sesuatu.</div>
+        <div class="evo-chips">
+          <span class="chip">Self-awareness</span>
+          <span class="chip">Efisiensi</span>
+          <span class="chip">Habit</span>
+        </div>
+      </div>
+      <div class="evo-phase">
+        <span class="evo-roman">II</span>
+        <div class="evo-tag">Fase Kompeten — 3 hingga 7 tahun</div>
+        <div class="evo-title">Koordinasi & Trade-off</div>
+        <div class="evo-body">Mulai mempertimbangkan bagaimana tindakan mempengaruhi orang lain. Belajar mendelegasikan dengan tepat. Memimpin bukan dengan perintah, tapi dengan strategi yang membuat orang mau mengikuti secara sukarela.</div>
+        <div class="evo-chips">
+          <span class="chip">Kepemimpinan</span>
+          <span class="chip">Koordinasi</span>
+          <span class="chip">Trade-off</span>
+        </div>
+      </div>
+      <div class="evo-phase">
+        <span class="evo-roman">III</span>
+        <div class="evo-tag">Fase Mahir — 7 hingga 15 tahun</div>
+        <div class="evo-title">Visi Sistem</div>
+        <div class="evo-body">Berpikir dalam sistem: setiap keputusan menciptakan efek riak yang melampaui situasi langsung. Memperhitungkan konsekuensi dari konsekuensi. Melihat apa yang tidak terlihat oleh orang-orang di sekitarnya.</div>
+        <div class="evo-chips">
+          <span class="chip">Systems Thinking</span>
+          <span class="chip">Second-order</span>
+          <span class="chip">Visi</span>
+        </div>
+      </div>
+      <div class="evo-phase">
+        <span class="evo-roman">IV</span>
+        <div class="evo-tag">Fase Master — 15 tahun ke atas</div>
+        <div class="evo-title">Kebijaksanaan & Warisan</div>
+        <div class="evo-body">Berpikir tentang dampak yang melampaui dirinya sendiri. Tidak lagi hanya mencari kemenangan personal, tapi memastikan generasi berikutnya memiliki pondasi yang lebih kuat dari yang pernah ia miliki.</div>
+        <div class="evo-chips">
+          <span class="chip">Legacy</span>
+          <span class="chip">Mentorship</span>
+          <span class="chip">Wisdom</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ FINAL ══ -->
+<section id="final">
+  <canvas id="final-canvas"></canvas>
+  <div class="final-bg"></div>
+  <div class="final-jp" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)">将</div>
+  <div class="final-tag">Epilog — The Mind Behind The Laziness</div>
+  <blockquote class="final-quote">
+    "Kecerdasan paling berharga bukan yang paling berisik — melainkan yang paling tepat waktu, paling efisien, dan paling tenang di saat yang paling genting."
+  </blockquote>
+  <div class="final-attr">— Filosofi Shikamaru Nara, diadaptasi untuk kehidupan nyata</div>
+</section>
+
+</main>
+
+<footer>
+  <div class="foot-l">
+    <span class="foot-jp">将</span>
+    <span class="foot-name">SHIKAMARU NARA</span>
+  </div>
+  <div class="foot-r">Lazy Outside · Sharp Inside · IQ 200+</div>
+</footer>
+
+<script>
+/* ─── CURSOR ─── */
+const cur = document.getElementById('cur');
+const trail = document.getElementById('cur-trail');
+let mx=0,my=0,tx=0,ty=0;
+document.addEventListener('mousemove',e=>{
+  mx=e.clientX; my=e.clientY;
+  cur.style.transform=`translate(${mx-4}px,${my-4}px)`;
+});
+(function loop(){
+  tx+=(mx-tx-16)*.1; ty+=(my-ty-16)*.1;
+  trail.style.transform=`translate(${tx}px,${ty}px)`;
+  requestAnimationFrame(loop);
+})();
+document.querySelectorAll('a,button,.pillar-item,.pr-card,.p-card,.evo-phase,.g-cell').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{ trail.style.width='56px';trail.style.height='56px';trail.style.borderColor='var(--vermillion)';trail.style.opacity='1'; });
+  el.addEventListener('mouseleave',()=>{ trail.style.width='32px';trail.style.height='32px';trail.style.borderColor='var(--gold)';trail.style.opacity='.6'; });
+});
+
+/* ─── NEURAL BG CANVAS ─── */
+const nc=document.getElementById('neural');
+const nctx=nc.getContext('2d');
+nc.width=window.innerWidth; nc.height=window.innerHeight;
+window.addEventListener('resize',()=>{ nc.width=window.innerWidth; nc.height=window.innerHeight; });
+const pts=Array.from({length:70},()=>({
+  x:Math.random()*nc.width, y:Math.random()*nc.height,
+  vx:(Math.random()-.5)*.25, vy:(Math.random()-.5)*.25
+}));
+function drawNeural(){
+  nctx.clearRect(0,0,nc.width,nc.height);
+  pts.forEach(p=>{ p.x+=p.vx; p.y+=p.vy;
+    if(p.x<0||p.x>nc.width)p.vx*=-1;
+    if(p.y<0||p.y>nc.height)p.vy*=-1;
+  });
+  for(let i=0;i<pts.length;i++) for(let j=i+1;j<pts.length;j++){
+    const d=Math.hypot(pts[i].x-pts[j].x,pts[i].y-pts[j].y);
+    if(d<130){
+      nctx.beginPath();
+      nctx.strokeStyle=`rgba(212,160,23,${.06*(1-d/130)})`;
+      nctx.lineWidth=.5;
+      nctx.moveTo(pts[i].x,pts[i].y);
+      nctx.lineTo(pts[j].x,pts[j].y);
+      nctx.stroke();
+    }
+  }
+  pts.forEach(p=>{
+    nctx.beginPath();
+    nctx.arc(p.x,p.y,1,0,Math.PI*2);
+    nctx.fillStyle='rgba(212,160,23,.35)';
+    nctx.fill();
+  });
+  requestAnimationFrame(drawNeural);
+}
+drawNeural();
+
+/* ─── SHADOW HERO CANVAS ─── */
+(function(){
+  const c=document.getElementById('shadow-canvas');
+  if(!c)return;
+  const ctx=c.getContext('2d');
+  const resize=()=>{c.width=c.offsetWidth;c.height=c.offsetHeight;};
+  resize(); window.addEventListener('resize',resize);
+  const tendrils=Array.from({length:12},()=>({
+    x:Math.random()*c.width, y:Math.random()*c.height,
+    len:Math.random()*120+60, ang:Math.random()*Math.PI*2,
+    spd:Math.random()*.005+.002, alpha:Math.random()*.15+.05,
+    w:Math.random()*2+.5
+  }));
+  function drawShadow(){
+    ctx.clearRect(0,0,c.width,c.height);
+    tendrils.forEach(t=>{
+      t.ang+=t.spd;
+      ctx.beginPath();
+      ctx.moveTo(t.x,t.y);
+      ctx.bezierCurveTo(
+        t.x+Math.cos(t.ang)*t.len*.5, t.y+Math.sin(t.ang)*t.len*.5,
+        t.x+Math.cos(t.ang+.8)*t.len*.8, t.y+Math.sin(t.ang+.8)*t.len*.8,
+        t.x+Math.cos(t.ang+1.2)*t.len, t.y+Math.sin(t.ang+1.2)*t.len
+      );
+      ctx.strokeStyle=`rgba(10,10,15,${t.alpha})`;
+      ctx.lineWidth=t.w;
+      ctx.stroke();
+    });
+    requestAnimationFrame(drawShadow);
+  }
+  drawShadow();
+})();
+
+/* ─── MIND CANVAS (interactive) ─── */
+(function(){
+  const c=document.getElementById('mind-cv');
+  const box=document.getElementById('mind-canvas');
+  if(!c||!box)return;
+  const ctx=c.getContext('2d');
+  const resize=()=>{c.width=box.offsetWidth;c.height=box.offsetHeight;};
+  resize(); window.addEventListener('resize',resize);
+  let mouse={x:c.width/2,y:c.height/2};
+  box.addEventListener('mousemove',e=>{
+    const r=box.getBoundingClientRect();
+    mouse.x=e.clientX-r.left; mouse.y=e.clientY-r.top;
+  });
+  const nodes=Array.from({length:22},()=>({
+    x:Math.random()*500+50, y:Math.random()*500+50,
+    vx:(Math.random()-.5)*.4, vy:(Math.random()-.5)*.4,
+    r:Math.random()*3+2, alpha:Math.random()*.5+.3,
+    hue: Math.random()<.2?'192,57,43':'212,160,23'
+  }));
+  let t=0;
+  function draw(){
+    t+=.008;
+    ctx.clearRect(0,0,c.width,c.height);
+    // Mouse influence
+    nodes.forEach(n=>{
+      n.x+=n.vx; n.y+=n.vy;
+      if(n.x<0||n.x>c.width)n.vx*=-1;
+      if(n.y<0||n.y>c.height)n.vy*=-1;
+      const dx=mouse.x-n.x, dy=mouse.y-n.y, d=Math.hypot(dx,dy);
+      if(d<100){ n.vx+=dx/d*.04; n.vy+=dy/d*.04; }
+      n.vx*=.99; n.vy*=.99;
+    });
+    // Connections
+    for(let i=0;i<nodes.length;i++) for(let j=i+1;j<nodes.length;j++){
+      const d=Math.hypot(nodes[i].x-nodes[j].x,nodes[i].y-nodes[j].y);
+      if(d<160){
+        ctx.beginPath();
+        ctx.strokeStyle=`rgba(212,160,23,${.2*(1-d/160)})`;
+        ctx.lineWidth=.7;
+        ctx.moveTo(nodes[i].x,nodes[i].y);
+        ctx.lineTo(nodes[j].x,nodes[j].y);
+        ctx.stroke();
+      }
+    }
+    // Mouse connections
+    nodes.forEach(n=>{
+      const d=Math.hypot(mouse.x-n.x,mouse.y-n.y);
+      if(d<120){
+        ctx.beginPath();
+        ctx.strokeStyle=`rgba(192,57,43,${.35*(1-d/120)})`;
+        ctx.lineWidth=1;
+        ctx.moveTo(mouse.x,mouse.y);
+        ctx.lineTo(n.x,n.y);
+        ctx.stroke();
+      }
+    });
+    // Nodes
+    nodes.forEach(n=>{
+      ctx.beginPath();
+      ctx.arc(n.x,n.y,n.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(${n.hue},${n.alpha})`;
+      ctx.fill();
+    });
+    // Mouse dot
+    ctx.beginPath();
+    ctx.arc(mouse.x,mouse.y,5,0,Math.PI*2);
+    ctx.fillStyle='rgba(192,57,43,.7)';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(mouse.x,mouse.y,12+Math.sin(t*3)*3,0,Math.PI*2);
+    ctx.strokeStyle='rgba(192,57,43,.3)';
+    ctx.lineWidth=1;
+    ctx.stroke();
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* ─── FINAL CANVAS ─── */
+(function(){
+  const c=document.getElementById('final-canvas');
+  if(!c)return;
+  const ctx=c.getContext('2d');
+  const resize=()=>{c.width=window.innerWidth;c.height=c.parentElement.offsetHeight;};
+  resize(); window.addEventListener('resize',resize);
+  // Shōgi board faint lines
+  function drawFinal(){
+    ctx.clearRect(0,0,c.width,c.height);
+    const now=Date.now()*.0003;
+    for(let i=0;i<9;i++) for(let j=0;j<9;j++){
+      const gx=c.width/2+(i-4)*70+Math.sin(now+i)*.5;
+      const gy=c.height/2+(j-4)*70+Math.cos(now+j)*.5;
+      const a=.018+Math.sin(now+i+j)*.008;
+      ctx.fillStyle=`rgba(212,160,23,${a})`;
+      ctx.fillRect(gx-25,gy-30,50,60);
+      ctx.strokeStyle=`rgba(212,160,23,${a*.5})`;
+      ctx.strokeRect(gx-25,gy-30,50,60);
+    }
+    requestAnimationFrame(drawFinal);
+  }
+  drawFinal();
+})();
+
+/* ─── IQ HERO COUNTER ─── */
+function countTo(el,target,dur=2200){
+  let s=0; const step=target/(dur/16);
+  const iv=setInterval(()=>{
+    s+=step; if(s>=target){el.textContent=target;clearInterval(iv);return;}
+    el.textContent=Math.floor(s);
+  },16);
+}
+setTimeout(()=>countTo(document.getElementById('iq-counter'),200),800);
+
+/* ─── SCROLL OBSERVER ─── */
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(!e.isIntersecting)return;
+    e.target.classList.add('visible');
+    // Stat counters
+    e.target.querySelectorAll('.g-num[data-target]').forEach(n=>{
+      const bar=n.closest('.g-cell')?.querySelector('.g-bar');
+      countTo(n,+n.dataset.target,1800);
+    });
+  });
+},{threshold:.12});
+document.querySelectorAll('.reveal,.g-cell,.df-step,.evo-grid').forEach(el=>obs.observe(el));
+
+/* ─── PILLAR TABS ─── */
+function openPillar(i){
+  document.querySelectorAll('.pillar-item').forEach((el,idx)=>el.classList.toggle('open',idx===i));
+  document.querySelectorAll('.pillar-content').forEach((el,idx)=>{
+    el.classList.remove('show');
+    if(idx===i){el.classList.add('show');}
+  });
+}
+
+/* ─── PARALLAX HERO KANJI ─── */
+const hk=document.querySelector('.hero-kanji');
+if(hk){
+  window.addEventListener('mousemove',e=>{
+    const dx=(e.clientX/window.innerWidth-.5)*20;
+    const dy=(e.clientY/window.innerHeight-.5)*20;
+    hk.style.transform=`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+  });
+  hk.style.left='50%'; hk.style.top='50%'; hk.style.transform='translate(-50%,-50%)';
+}
+</script>
+</body>
+</html>
